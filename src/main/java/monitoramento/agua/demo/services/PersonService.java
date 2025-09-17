@@ -1,22 +1,33 @@
 package monitoramento.agua.demo.services;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
 
 import monitoramento.agua.demo.dtos.PersonDTO;
+import monitoramento.agua.demo.exception.ConflictException;
+import monitoramento.agua.demo.exception.NotFoundException;
 import monitoramento.agua.demo.models.Person;
 import monitoramento.agua.demo.repositories.PersonRepository;
 
+@Service
 public class PersonService {
 
     @Autowired
     private PersonRepository personRepo;
 
-    public Person save(String id, PersonDTO dto) {
+    public Person save(PersonDTO dto) {
 
+        Optional<Person> personOpt = personRepo.findByEmail(dto.email());
+
+        if (personOpt.isPresent()) {
+            throw new ConflictException("Email já existe");
+        }
         // Person person = personRepo.findById(UUID.fromString(id)).
         //         orElseThrow(()
         //                 -> new RuntimeException("Pessoa " + id + " não existe"));
@@ -25,16 +36,22 @@ public class PersonService {
         return personRepo.save(person);
     }
 
-    public List<Person> get(String id, PersonDTO dto) {
-        return personRepo.findAll();
+    public Page<Person> getAll(int page, int size) {
+        return personRepo.findAll(PageRequest.of(page, size));
     }
 
     public Person getById(String id) {
-        return personRepo.findById(UUID.fromString(id)).orElseThrow(() -> new RuntimeException("Pessoa " + id + " não existe"));
+        return personRepo.findById(UUID.fromString(id)).orElseThrow(() -> new NotFoundException("Person with id " + id + " do not exist"));
     }
 
-    public void delete(String id) {
+    public Person findByEmail(String email) {
+        return personRepo.findByEmail(email).orElseThrow(() -> new NotFoundException("Person with email:" + email + "Not found"));
+    }
+
+    public String delete(String id) {
         personRepo.delete(getById(id));
+        String message = "Deleted succesfully!";
+        return message;
     }
 
     public Person update(String id, PersonDTO dto) {
