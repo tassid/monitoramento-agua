@@ -1,5 +1,19 @@
 package monitoramento.agua.demo.dtos;
 
-public record PersonDTO(String name, String email, String role) {
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public record PersonDTO(
+    @NotNull
+    @NotBlank
+    String name, 
+    @Email
+    @NotNull
+    @NotBlank
+    String email, 
+    @NotNull
+    @NotBlank
+    String role) {
 
 }

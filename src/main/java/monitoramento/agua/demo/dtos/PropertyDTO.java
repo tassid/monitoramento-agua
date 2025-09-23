@@ -1,5 +1,15 @@
 package monitoramento.agua.demo.dtos;
 
-public record PropertyDTO(String areaHa, String address) {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public record PropertyDTO(
+        @NotBlank
+        String areaHa,
+        @NotBlank
+        String address,
+        @NotNull
+        String personId
+        ) {
 
 }

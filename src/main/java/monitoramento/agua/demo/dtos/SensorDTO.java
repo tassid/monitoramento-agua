@@ -1,5 +1,14 @@
 package monitoramento.agua.demo.dtos;
 
-public record SensorDTO(String name, String sensorType) {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import monitoramento.agua.demo.models.SensorType;
 
+public record SensorDTO(
+        @NotBlank
+        String name,
+        @NotNull
+        SensorType sensorType,
+        @NotNull
+        String deviceId) {
 }

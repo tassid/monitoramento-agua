@@ -8,4 +8,5 @@ import monitoramento.agua.demo.models.Sensor;
 
 public interface SensorRepository extends JpaRepository<Sensor, UUID> {
 
+    void deleteAllByDeviceId(UUID deviceId);
 }

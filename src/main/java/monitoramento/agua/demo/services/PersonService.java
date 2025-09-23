@@ -28,9 +28,7 @@ public class PersonService {
         if (personOpt.isPresent()) {
             throw new ConflictException("Email já existe");
         }
-        // Person person = personRepo.findById(UUID.fromString(id)).
-        //         orElseThrow(()
-        //                 -> new RuntimeException("Pessoa " + id + " não existe"));
+
         Person person = new Person();
         BeanUtils.copyProperties(dto, person);
         return personRepo.save(person);
@@ -41,16 +39,16 @@ public class PersonService {
     }
 
     public Person getById(String id) {
-        return personRepo.findById(UUID.fromString(id)).orElseThrow(() -> new NotFoundException("Person with id " + id + " do not exist"));
+        return personRepo.findById(UUID.fromString(id)).orElseThrow(() -> new NotFoundException("Pessoa com id " + id + " não existe"));
     }
 
     public Person findByEmail(String email) {
-        return personRepo.findByEmail(email).orElseThrow(() -> new NotFoundException("Person with email:" + email + "Not found"));
+        return personRepo.findByEmail(email).orElseThrow(() -> new NotFoundException("Pessoa com email:" + email + "não encontrada"));
     }
 
     public String delete(String id) {
         personRepo.delete(getById(id));
-        String message = "Deleted succesfully!";
+        String message = "Deletado com sucesso.";
         return message;
     }
 
@@ -58,6 +56,5 @@ public class PersonService {
         var person = getById(id);
         BeanUtils.copyProperties(dto, person, "id");
         return personRepo.save(person);
-        //teste
     }
 }
