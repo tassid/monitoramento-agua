@@ -7,11 +7,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Configuração do interceptor
- * 
+ *
  * Este código configura um interceptor personalizado para validar tokens JWT em
- * requisições HTTP. O interceptor é aplicado a todos os endpoints que correspondem
- * ao padrão "/api/**".
- * 
+ * requisições HTTP. O interceptor é aplicado a todos os endpoints que
+ * correspondem ao padrão "/api/**".
+ *
  */
 @Configuration
 public class InterceptorConfig implements WebMvcConfigurer {
@@ -25,4 +25,4 @@ public class InterceptorConfig implements WebMvcConfigurer {
         registry.addInterceptor(cognitoTokenValidationInterceptor)
                 .addPathPatterns("/api/**"); // Aplica o interceptor aos seus endpoints protegidos
     }
-}  
+}

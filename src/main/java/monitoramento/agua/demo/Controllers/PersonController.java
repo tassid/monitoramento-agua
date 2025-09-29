@@ -16,7 +16,7 @@ import monitoramento.agua.demo.models.Person;
 import monitoramento.agua.demo.services.PersonService;
 
 @RestController
-@RequestMapping("/person")
+@RequestMapping("/api/person")
 public class PersonController {
 
     private final PersonService service;

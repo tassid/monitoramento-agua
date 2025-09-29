@@ -1,50 +1,54 @@
 package monitoramento.agua.demo.Controllers;
 
-import java.lang.System.Logger;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
+
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 
-import org.slf4j.LoggerFactory;
-
-// import jakarta.websocket.Decoder; // Removed unnecessary import
-
-import com.auth0.jwt.interfaces.JWTVerifier;
-
 import monitoramento.agua.demo.dtos.AuthRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AuthFlowType;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AuthenticationResultType;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIdentityProviderException;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthorizedException;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.UserNotFoundException;
 
 @RestController
 @RequestMapping("/login")
 public class AuthController {
 
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AuthController.class);
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
+    private final CognitoIdentityProviderClient cognitoClient;
+
+    public AuthController() {
+        this.cognitoClient = CognitoIdentityProviderClient.builder().build();
+    }
+
     @Value("${aws.cognito.url}")
     private String cognitoUrl;
 
@@ -69,143 +73,95 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest authRequest) {
         try {
-            String secretHash = calculateSecretHash(authRequest.getUsername());
-
-            Map<String, Object> authParams = new HashMap<>();
+            Map<String, String> authParams = new HashMap<>();
             authParams.put("USERNAME", authRequest.getUsername());
             authParams.put("PASSWORD", authRequest.getPassword());
-            authParams.put("SECRET_HASH", secretHash);
 
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("AuthFlow", "USER_PASSWORD_AUTH");
-            payload.put("ClientId", clientId);
-            payload.put("AuthParameters", authParams);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Content-Type", "application/x-amz-json-1.1");
-            headers.set("X-Amz-Target", "AWSCognitoIdentityProviderService.InitiateAuth");
-
-            // Serializa o payload como JSON
-            String body = objectMapper.writeValueAsString(payload);
-
-            HttpEntity<String> request = new HttpEntity<>(body, headers);
-
-            System.out.println("URL: " + cognitoUrl);
-            System.out.println("Payload: " + payload);
-            System.out.println("Headers: " + headers);
-            System.out.println("Entity: " + request);
-
-            ResponseEntity<String> response = restTemplate.postForEntity(cognitoUrl, request, String.class);
-            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @PostMapping("/validate")
-    public ResponseEntity<Map<String, Object>> validateToken(
-            @RequestHeader("Authorization") String authorizationHeader) {
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            String token = authorizationHeader.substring(7);
-
-            try {
-
-                DecodedJWT jwt = JWT.decode(token);
-
-                String keyId = jwt.getKeyId(); // Ou jwt.getHeaderClaim("kid").asString();
-                PublicKey publicKey = getPublicKey(keyId);
-
-                if (publicKey != null && publicKey instanceof RSAPublicKey) {
-                    // Agora, verifica a assinatura
-                    Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) publicKey, null);
-                    JWTVerifier verifier = JWT.require(algorithm)
-                            .withIssuer(String.format("https://cognito-idp.%s.amazonaws.com/%s", awsRegion, userPoolId)) // Adicione seu aws.cognito.region aqui
-                            .build();
-
-                    verifier.verify(token); // Esta linha lança uma exceção se a verificação falhar
-
-                    Map<String, Object> claims = new HashMap<>();
-                    jwt.getClaims().forEach((k, v) -> claims.put(k, v.as(Object.class)));
-                    return ResponseEntity.ok(Map.of("valid", true, "claims", claims));
-                } else {
-                    logger.error("Chave pública não encontrada ou não é do tipo RSA para o kid: {}", keyId);
+            // Só calcula e adiciona o hash se o clientSecret existir
+            if (clientSecret != null && !clientSecret.isEmpty()) {
+                try {
+                    authParams.put("SECRET_HASH", calculateSecretHash(authRequest.getUsername()));
+                } catch (Exception ex) {
+                    logger.error("Erro ao calcular o SECRET_HASH: {}", ex.getMessage());
+                    return ResponseEntity.status(500).body(Map.of("error", "Erro ao calcular o SECRET_HASH."));
                 }
-
-            } catch (JWTVerificationException e) {
-                logger.error("Token JWT do Cognito inválido: {}", e.getMessage());
-            } catch (Exception e) {
-                logger.error("Erro ao validar token do Cognito: {}", e.getMessage());
             }
-        }
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("valid", false, "message", "Token inválido"));
+            InitiateAuthRequest authReq = InitiateAuthRequest.builder()
+                    .authFlow(AuthFlowType.USER_PASSWORD_AUTH)
+                    .clientId(clientId)
+                    .authParameters(authParams)
+                    .build();
+
+            InitiateAuthResponse response = cognitoClient.initiateAuth(authReq);
+            AuthenticationResultType result = response.authenticationResult();
+
+            // Retorna os tokens para o cliente
+            return ResponseEntity.ok(Map.of(
+                    "idToken", result.idToken(),
+                    "accessToken", result.accessToken(),
+                    "refreshToken", result.refreshToken(),
+                    "expiresIn", result.expiresIn()
+            ));
+
+        } catch (NotAuthorizedException e) {
+            logger.warn("Tentativa de login falhou para o usuário {}: {}", authRequest.getUsername(), e.getMessage());
+            return ResponseEntity.status(401).body(Map.of("error", "Credenciais inválidas."));
+        } catch (UserNotFoundException e) {
+            logger.warn("Tentativa de login para usuário inexistente: {}", authRequest.getUsername());
+            return ResponseEntity.status(404).body(Map.of("error", "Usuário não encontrado."));
+        } catch (CognitoIdentityProviderException e) {
+            logger.error("Erro do Cognito durante o login: {}", e.awsErrorDetails().errorMessage());
+            return ResponseEntity.status(500).body(Map.of("error", e.awsErrorDetails().errorMessage()));
+        }
     }
 
+    // MUDANÇA 4: Método de refresh refatorado para usar o AWS SDK
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> payload) {
         String refreshToken = payload.get("refreshToken");
-        String username = payload.get("username");
+        String username = payload.get("username"); // Necessário para o secret hash se o cliente for confidencial
 
         if (refreshToken == null || refreshToken.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "refresh_token_required"));
         }
 
         try {
-            logger.info("Tentando refresh token: {}", refreshToken);
-            logger.info("Usando ClientId: {}", clientId);
-            logger.info("Usando ClientSecret: {}", clientSecret);
-            logger.info("Usando username: {}", username);
-            String secretHash = calculateSecretHash(username);
-            logger.info("SecretHash calculado para refresh: {}", secretHash);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Content-Type", "application/x-amz-json-1.1");
-            headers.set("X-Amz-Target", "AWSCognitoIdentityProviderService.InitiateAuth");
-
             Map<String, String> authParams = new HashMap<>();
             authParams.put("REFRESH_TOKEN", refreshToken);
-            authParams.put("SECRET_HASH", secretHash);
 
-            Map<String, Object> body = new HashMap<>();
-            body.put("AuthFlow", "REFRESH_TOKEN_AUTH");
-            body.put("ClientId", clientId);
-            body.put("AuthParameters", authParams);
-
-            String jsonBody = objectMapper.writeValueAsString(body); // Converter o body para String JSON
-
-            HttpEntity<String> request = new HttpEntity<>(jsonBody, headers); // Usar String como corpo
-
-            ResponseEntity<JsonNode> response = restTemplate.exchange(cognitoUrl,
-                    HttpMethod.POST,
-                    request,
-                    JsonNode.class);
-
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                JsonNode authResultNode = response.getBody().get("AuthenticationResult");
-                if (authResultNode != null && authResultNode.has("IdToken") && authResultNode.has("AccessToken")) {
-                    Map<String, String> refreshedTokens = new HashMap<>();
-                    refreshedTokens.put("idToken", authResultNode.get("IdToken").asText());
-                    refreshedTokens.put("accessToken", authResultNode.get("AccessToken").asText());
-                    // O Refresh Token geralmente não é retornado na resposta de refresh.
-                    // O cliente deve armazenar o Refresh Token original.
-                    return ResponseEntity.ok(refreshedTokens);
-                } else {
-                    logger.error("Resposta de refresh token inesperada: {}", response.getBody());
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body(Map.of("error", "invalid_refresh_token_response"));
+            if (clientSecret != null && !clientSecret.isEmpty()) {
+                if (username == null || username.isEmpty()) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "username_required_for_secret_hash"));
                 }
-            } else {
-                logger.error("Erro ao renovar token. Status: {}, Corpo: {}", response.getStatusCode(),
-                        response.getBody());
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "invalid_refresh_token"));
+                try {
+                    authParams.put("SECRET_HASH", calculateSecretHash(username));
+                } catch (Exception ex) {
+                    logger.error("Erro ao calcular o SECRET_HASH: {}", ex.getMessage());
+                    return ResponseEntity.status(500).body(Map.of("error", "Erro ao calcular o SECRET_HASH."));
+                }
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Erro ao processar a renovação do token", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "refresh_token_processing_error", "details", e.getMessage()));
+            InitiateAuthRequest authReq = InitiateAuthRequest.builder()
+                    .authFlow(AuthFlowType.REFRESH_TOKEN_AUTH)
+                    .clientId(clientId)
+                    .authParameters(authParams)
+                    .build();
+
+            InitiateAuthResponse response = cognitoClient.initiateAuth(authReq);
+            AuthenticationResultType result = response.authenticationResult();
+
+            return ResponseEntity.ok(Map.of(
+                    "idToken", result.idToken(),
+                    "accessToken", result.accessToken(),
+                    "expiresIn", result.expiresIn()
+            ));
+        } catch (NotAuthorizedException e) {
+            logger.warn("Falha no refresh token: {}", e.getMessage());
+            return ResponseEntity.status(401).body(Map.of("error", "Refresh token inválido ou expirado."));
+        } catch (CognitoIdentityProviderException e) {
+            logger.error("Erro do Cognito durante o refresh: {}", e.awsErrorDetails().errorMessage());
+            return ResponseEntity.status(500).body(Map.of("error", e.awsErrorDetails().errorMessage()));
         }
     }
 
