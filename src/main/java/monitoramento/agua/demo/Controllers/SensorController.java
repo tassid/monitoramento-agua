@@ -16,6 +16,7 @@ import monitoramento.agua.demo.dtos.SensorDTO;
 import monitoramento.agua.demo.models.Sensor;
 import monitoramento.agua.demo.services.SensorService;
 
+
 @RestController
 @RequestMapping("/sensor")
 public class SensorController {

@@ -1,23 +1,22 @@
 package monitoramento.agua.demo.Controllers;
 
+import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
-import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
@@ -25,7 +24,6 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.nio.charset.StandardCharsets;
 
 import monitoramento.agua.demo.dtos.AuthRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
@@ -45,8 +43,9 @@ public class AuthController {
 
     private final CognitoIdentityProviderClient cognitoClient;
 
-    public AuthController() {
-        this.cognitoClient = CognitoIdentityProviderClient.builder().build();
+    @Autowired
+    public AuthController(CognitoIdentityProviderClient cognitoClient) {
+        this.cognitoClient = cognitoClient;
     }
 
     @Value("${aws.cognito.url}")
@@ -70,7 +69,7 @@ public class AuthController {
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
-    @PostMapping("/login")
+    @PostMapping
     public ResponseEntity<?> login(@RequestBody AuthRequest authRequest) {
         try {
             Map<String, String> authParams = new HashMap<>();
