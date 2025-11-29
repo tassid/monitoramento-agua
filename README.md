@@ -12,23 +12,15 @@
 
 Essa é a nossa aplicação back-end em SrpingBoot para medir a qualidade da água de qualquer corpo hidríco.
 
-Ela será capaz de medir as águas do rio Tietê e do rio Ghandi, com o único empecilho sendo o hardware para tal,
-
-uma vez que o ph, turbidez, baixo oxigênio dissolvido, radiação, egoísmo, apatia, competição, preconceito, miséria
-
-dentre outras falhas - tão presentes em nossa sociedade e nesses rios - não permitem aparelho algum chegar perto 
-
-sem antes de ser completamente destruído...
+Ela será capaz de medir as águas do rio Tietê e do rio Ghandi, com o único empecilho sendo o hardware para tal, uma vez que o ph, turbidez, baixo oxigênio dissolvido, radiação, egoísmo, apatia, competição, preconceito, miséria dentre outras falhas - tão presentes em nossa sociedade e nesses rios - não permitem aparelho algum chegar perto sem antes de ser completamente destruído...
 
 Entretanto, é em tal dicotomia que se pode afimar: mesmo em um rio sujo, há nele água pura. Permitindo-me citar Voltaire, em sua obra "Autobiografia de Babuc escrita por ele mesmo":
 
-"Você condenaria uma estátua com acabamento de ouro apenas por que o resto é feito de barro?".
+- "Você condenaria uma estátua com acabamento de ouro apenas porque o resto é feito de barro?".
 
 E já que há algo tão puro, bonito e essencial a vida - como a água nestes rios sujos - há, partindo de nós, a necessidade de medir e tratá-la de suas impurezas. 
 
-E é sobre isso esse software!! Mais do que apenas medir a água, é mostrar que há bom em tudo, que talvez a natureza da água sempre foi ser doce,
-
-mas que, devido ao seu percuso históricoe e ao local em que se encontra, dá-se como suja. 
+E é *sobre isso* esse software!! Mais do que apenas medir a água, é mostrar que há bom em tudo, que talvez a natureza da água sempre foi ser doce, mas que devido ao seu percuso históricoe e ao local em que se encontra, dá-se como suja. 
 
 Neste caso, esses percusos d'agua - superando o meio físico prevísivel e adentrando o imaginário - nos permite olhar para um reflexo além do nosso rosto - a de nossa história - que até o momento é marcada por uma luta de classes aparentemente sem fim, contudo lembre-se caro leitor:
 
