@@ -1,0 +1,16 @@
+services:
+  db:
+    image: mysql:8.4.0
+    environment:
+      MYSQL_ROOT_PASSWORD: minhasenhafodastica 
+      MYSQL_DATABASE: db_monitoramento_agua
+      MYSQL_USER: lindoegostoso
+      MYSQL_PASSWORD: minhasenhafodastica
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3366:3306"
+
+
+volumes:
+  mysql_data:
